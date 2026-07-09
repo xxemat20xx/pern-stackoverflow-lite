@@ -38,6 +38,7 @@ export const getComments = async (req: Request, res: Response) => {
         const comments = await getCommentsByTarget(targetType as 'question' | 'answer', parsedTargetId);
         res.json(comments);
     } catch (error) {
+
         res.status(500).json({ error: 'Failed to fetch comments' });
     }
 };

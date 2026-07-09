@@ -18,7 +18,7 @@ export const createComment = async (
 export const getCommentsByTarget = async (targetType: 'question' | 'answer', targetId: number): Promise<(Comment & { username: string })[]> => {
     const result = await pool.query(
         `
-    SELECT c.*, u.username FROM comments c JOIN users u ON c.author_id = u.id WHERE c.target_type = $1 AND c.target_id = $2 ORDER BY c.create_at ASC
+    SELECT c.*, u.username FROM comments c JOIN users u ON c.author_id = u.id WHERE c.target_type = $1 AND c.target_id = $2 ORDER BY c.created_at ASC
     `, [targetType, targetId]
     );
     return result.rows[0];

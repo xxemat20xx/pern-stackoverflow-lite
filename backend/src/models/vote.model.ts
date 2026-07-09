@@ -53,3 +53,15 @@ export const getVoteCounts = async (
         total: Number(row.upvotes) + Number(row.downvotes),
     };
 };
+
+export const getUserVote = async (
+    userId: number,
+    targetType: 'question' | 'answer',
+    targetId: number
+): Promise<{ vote_type: -1 | 1 } | null> => {
+    const result = await pool.query<{ vote_type: -1 | 1 }>(
+        'SELECT vote_type FROM votes WHERE user_id = $1 AND target_type = $2 AND target_id = $3',
+        [userId, targetType, targetId]
+    );
+    return result.rows[0] || null;
+};

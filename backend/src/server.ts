@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes';
 import questionRoutes from './routes/question.routes';
 import answerRoutes from './routes/answer.routes';
 import commentRoutes from './routes/comment.routes';
+import voteRoutes from './routes/vote.routes';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/questions/:questionId/answers', answerRoutes) // <--nested under questions
 app.use('/api/comments', commentRoutes) // <-- Unified comment routes
+app.use('/api/votes', voteRoutes)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
