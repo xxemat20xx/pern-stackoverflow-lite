@@ -10,12 +10,16 @@ export const createAnswer = async (body: string, questionId: number, authorId: n
     return result.rows[0];
 };
 
-export const getAnswerByQuestions = async (questionId: number): Promise<Answer> => {
-    const result = await pool.query(
-        'SELECT * FROM answers WHERE question_id = $1 ORDER BY created_at ASC',
-        [questionId]
-    );
-    return result.rows[0];
+export const getAnswersByQuestion = async (questionId: number): Promise<Answer[]> => {
+    // ✅ Notice the JOIN with users to get the username
+    const result = await pool.query(`
+    SELECT a.*, u.username 
+    FROM answers a
+    JOIN users u ON a.author_id = u.id
+    WHERE a.question_id = $1
+    ORDER BY a.created_at ASC
+  `, [questionId]);
+    return result.rows;
 };
 
 export const acceptAnswer = async (answerId: number, userId: number): Promise<Answer | null> => {

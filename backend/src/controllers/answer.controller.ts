@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import {
     createAnswer,
-    getAnswerByQuestions,
+    getAnswersByQuestion,
     acceptAnswer
 } from '../models/answer.model';
 
@@ -10,10 +10,11 @@ export const createAnswerHandler = async (req: Request, res: Response) => {
     const { body } = req.body;
     const { questionId } = req.params;
     const userId = req.user!.id;
+    const username = req.user!.username;
 
     try {
         const answer = await createAnswer(body, Number(questionId), userId);
-        return res.status(201).json(answer);
+        return res.status(201).json({ ...answer, username });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Failed to create answer' });
@@ -23,7 +24,7 @@ export const createAnswerHandler = async (req: Request, res: Response) => {
 export const getAnswers = async (req: Request, res: Response) => {
     const { questionId } = req.params;
     try {
-        const answers = await getAnswerByQuestions(Number(questionId));
+        const answers = await getAnswersByQuestion(Number(questionId));
         res.json(answers);
     } catch (error) {
         console.error(error)

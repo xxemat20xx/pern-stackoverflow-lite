@@ -3,9 +3,12 @@ import { useEffect } from 'react';
 
 import useAuthStore from './store/authStore';
 
-import HomePage from './pages/HomePage';
+
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/Register';
+import QuestionsPage from './pages/QuestionsPage';
+import AskQuestionPage from './pages/AskQuestionPage';
+import QuestionDetailPage from './pages/QuestionDetailPage';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,15 +25,19 @@ const App = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/questions" element={<QuestionsPage />} />
       <Route
-        path="/"
+        path="/ask"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <AskQuestionPage />
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/questions/:id" element={<QuestionDetailPage />} />
+      <Route path="/" element={<Navigate to="/questions" replace />} />
+      <Route path="*" element={<Navigate to="/questions" replace />} />
+
     </Routes>
   )
 }
