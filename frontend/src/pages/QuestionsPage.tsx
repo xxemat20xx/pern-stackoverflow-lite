@@ -6,7 +6,6 @@ import {
     User,
     CalendarDays,
     Plus,
-    Pencil,
     Trash2,
     Loader2, // ✅ add this icon
 } from "lucide-react";
@@ -139,8 +138,8 @@ const QuestionsPage = () => {
                                             }
                                         }}
                                         className={`absolute top-4 right-4 p-2 bg-white border border-gray-200 rounded-full shadow-sm transition ${isDeleting
-                                                ? 'text-orange-500 cursor-not-allowed opacity-100'
-                                                : 'text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100'
+                                            ? 'text-orange-500 cursor-not-allowed opacity-100'
+                                            : 'text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100'
                                             }`}
                                         title="Delete question"
                                     >
