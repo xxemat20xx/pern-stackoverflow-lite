@@ -11,7 +11,7 @@ import commentRoutes from './routes/comment.routes';
 import voteRoutes from './routes/vote.routes';
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: [process.env.FRONTEND_URL as string, 'http://localhost:5173'], credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
