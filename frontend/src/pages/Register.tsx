@@ -1,66 +1,130 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import useAuthStore from '../store/authStore';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import useAuthStore from "../store/authStore";
 
 const RegisterPage = () => {
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const { register, isLoading } = useAuthStore();
     const navigate = useNavigate();
+    const { register, isLoading } = useAuthStore();
+
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
         const result = await register(username, email, password);
-        if (result.success) navigate('/');
-        else alert(result.error);
+
+        if (result.success) {
+            navigate("/");
+        } else {
+            alert(result.error);
+        }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="bg-white p-8 rounded-lg shadow-md w-96">
-                <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                            required
-                        />
-                    </div>
-                    <div className="mb-6">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                            required
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+            <div className="w-full max-w-sm">
+                {/* Header */}
+                <div className="mb-8 text-center">
+                    <h1 className="text-3xl font-bold text-slate-900">
+                        Create account
+                    </h1>
+                    <p className="mt-2 text-sm text-slate-500">
+                        Create an account to get started.
+                    </p>
+                </div>
+
+                {/* Card */}
+                <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        {/* Username */}
+                        <div>
+                            <label
+                                htmlFor="username"
+                                className="mb-2 block text-sm font-medium text-slate-700"
+                            >
+                                Username
+                            </label>
+
+                            <input
+                                id="username"
+                                type="text"
+                                required
+                                autoComplete="username"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="johndoe"
+                                className="w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            />
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                            <label
+                                htmlFor="email"
+                                className="mb-2 block text-sm font-medium text-slate-700"
+                            >
+                                Email
+                            </label>
+
+                            <input
+                                id="email"
+                                type="email"
+                                required
+                                autoComplete="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="name@example.com"
+                                className="w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            />
+                        </div>
+
+                        {/* Password */}
+                        <div>
+                            <label
+                                htmlFor="password"
+                                className="mb-2 block text-sm font-medium text-slate-700"
+                            >
+                                Password
+                            </label>
+
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                autoComplete="new-password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Create a password"
+                                className="w-full rounded-md border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                            />
+
+                            <p className="mt-2 text-xs text-slate-500">
+                                Use at least 8 characters for a stronger password.
+                            </p>
+                        </div>
+
+                        {/* Submit */}
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full rounded-md bg-slate-900 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isLoading ? "Creating account..." : "Create account"}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Footer */}
+                <p className="mt-6 text-center text-sm text-slate-600">
+                    Already have an account?{" "}
+                    <Link
+                        to="/login"
+                        className="font-medium text-blue-600 hover:underline"
                     >
-                        {isLoading ? 'Registering...' : 'Register'}
-                    </button>
-                </form>
-                <p className="mt-4 text-center text-sm">
-                    Already have an account? <Link to="/login" className="text-blue-600">Login</Link>
+                        Sign in
+                    </Link>
                 </p>
             </div>
         </div>
