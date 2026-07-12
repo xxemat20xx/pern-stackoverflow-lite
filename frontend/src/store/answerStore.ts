@@ -18,6 +18,7 @@ interface AnswerState {
     error: string | null;
     fetchAnswers: (questionId: number) => Promise<void>;
     createAnswer: (questionId: number, body: string, username?: string) => Promise<{ success: boolean; error?: string }>;
+    acceptAnswer: (questionId: number, answerId: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 const useAnswerStore = create<AnswerState>((set) => ({
@@ -53,6 +54,27 @@ const useAnswerStore = create<AnswerState>((set) => ({
             return { success: true };
         } catch (error: any) {
             const message = error.response?.data?.error || 'Failed to post answer';
+            set({ error: message, isLoading: false });
+            return { success: false, error: message };
+        }
+    },
+
+    acceptAnswer: async (questionId: number, answerId: number) => {
+        set({ isLoading: true, error: null });
+        try {
+            await api.put(`/questions/${questionId}/answers/${answerId}/accept`);
+
+            set((state) => ({
+                answers: state.answers.map((ans) =>
+                    ans.id === answerId
+                        ? { ...ans, is_accepted: true }
+                        : { ...ans, is_accepted: false } // ensure only one is accepted
+                ),
+                isLoading: false
+            }));
+            return { success: true };
+        } catch (error: any) {
+            const message = error.response?.data?.error || 'Failed to accept answer';
             set({ error: message, isLoading: false });
             return { success: false, error: message };
         }

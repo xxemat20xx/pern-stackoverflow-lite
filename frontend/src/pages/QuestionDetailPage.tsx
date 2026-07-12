@@ -6,7 +6,12 @@ import {
     CalendarDays,
     MessageSquare,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    CheckCircle,
+    X,
+    Pencil,
+    Trash2,
+    Check
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -21,8 +26,14 @@ const QuestionDetailPage = () => {
     const navigate = useNavigate();
     const questionId = Number(id);
 
-    const { currentQuestion, fetchQuestionById, isLoading: qLoading } = useQuestionStore();
-    const { answers, fetchAnswers, createAnswer, isLoading: aLoading } = useAnswerStore();
+    useEffect(() => {
+        if (isNaN(questionId) || questionId <= 0) {
+            navigate('/questions', { replace: true });
+        }
+    }, [questionId, navigate]);
+
+    const { currentQuestion, fetchQuestionById, isLoading: qLoading, updateQuestion, deleteQuestionById } = useQuestionStore();
+    const { answers, fetchAnswers, createAnswer, acceptAnswer, isLoading: aLoading } = useAnswerStore();
     const { user } = useAuthStore();
     const { getVoteCounts, castVote, removeVote } = useVoteStore();
 
@@ -31,6 +42,9 @@ const QuestionDetailPage = () => {
     const [questionVotes, setQuestionVotes] = useState({ upvotes: 0, downvotes: 0 });
     const [answerVotes, setAnswerVotes] = useState<Record<number, { upvotes: number, downvotes: number }>>({});
     const [userVotes, setUserVotes] = useState<Record<string, 1 | -1 | null>>({});
+    const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editBody, setEditBody] = useState('');
 
     const getUserVote = async (targetType: 'question' | 'answer', targetId: number) => {
         if (!user) return null;
@@ -42,10 +56,10 @@ const QuestionDetailPage = () => {
         }
     };
 
+
     const loadVotes = async () => {
         if (!currentQuestion) return;
 
-        // Cast currentQuestion.id to number (it may be string from API)
         const qId = Number(currentQuestion.id);
         const qVotes = await getVoteCounts('question', qId);
         setQuestionVotes(qVotes);
@@ -99,7 +113,7 @@ const QuestionDetailPage = () => {
                 await removeVote(targetType, targetId);
                 setUserVotes(prev => ({ ...prev, [key]: null }));
             } else {
-                await castVote(targetType, targetId, voteType);
+                await castVote(targetType, targetId, voteType as 1 | -1);
                 setUserVotes(prev => ({ ...prev, [key]: voteType }));
             }
 
@@ -113,6 +127,15 @@ const QuestionDetailPage = () => {
             alert(error.response?.data?.error || 'Failed to vote.');
         }
     };
+
+    const handleAcceptAnswer = async (answerId: number) => {
+        if (!confirm('Mark this answer as the accepted solution?')) return;
+        const result = await acceptAnswer(questionId, answerId);
+        if (!result.success) {
+            alert(result.error || 'Failed to accept answer');
+        }
+    };
+
 
     if (qLoading) {
         return (
@@ -135,6 +158,32 @@ const QuestionDetailPage = () => {
     }
 
     const answersList = Array.isArray(answers) ? answers : [];
+    // ✅ Safe to check author_id now because we already guarded currentQuestion
+    const isQuestionAuthor = user?.id === currentQuestion.author_id;
+
+    const handleStartEdit = () => {
+        setEditTitle(currentQuestion.title);
+        setEditBody(currentQuestion.body);
+        setIsEditing(true);
+    };
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+    };
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim() || !editBody.trim()) return;
+        const result = await updateQuestion(Number(currentQuestion.id), editTitle, editBody);
+        if (result.success) {
+            setIsEditing(false);
+        } else {
+            alert(result.error || 'Failed to update question');
+        }
+    };
+    const handleDeleteCurrent = async () => {
+        if (confirm('Are you sure you want to delete this question?')) {
+            await deleteQuestionById(Number(currentQuestion.id));
+            navigate('/questions');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -154,6 +203,57 @@ const QuestionDetailPage = () => {
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
                             <h1 className="text-3xl font-bold text-gray-900">{currentQuestion.title}</h1>
+                            {isEditing ? (
+                                // Edit Mode UI
+                                <>
+                                    <input
+                                        className="mt-4 w-full border-2 border-gray-300 rounded-lg px-4 py-2"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                    />
+                                    <textarea
+                                        className="mt-2 w-full border-2 border-gray-300 rounded-lg px-4 py-2"
+                                        rows={5}
+                                        value={editBody}
+                                        onChange={(e) => setEditBody(e.target.value)}
+                                    />
+                                    <div className="flex gap-2 mt-4">
+                                        <button
+                                            onClick={handleSaveEdit}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                                        >
+                                            <Check />
+                                        </button>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            className="px-6 py-2 border-2 border-gray-300 rounded-lg"
+                                        >
+                                            <X />
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                // Display Mode UI
+                                <>
+                                    <p className="mt-4">{currentQuestion.body}</p>
+                                    {isQuestionAuthor && (
+                                        <div className="flex gap-2 mt-4">
+                                            <button
+                                                onClick={handleStartEdit}
+                                                className="px-4 py-1 bg-gray-200 rounded-lg"
+                                            >
+                                                <Pencil />
+                                            </button>
+                                            <button
+                                                onClick={handleDeleteCurrent}
+                                                className="px-4 py-1 bg-red-200 text-red-600 rounded-lg"
+                                            >
+                                                <Trash2 />
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                             <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
                                 <span className="flex items-center gap-1">
                                     <User size={16} /> {currentQuestion.username}
@@ -201,6 +301,7 @@ const QuestionDetailPage = () => {
                         ) : (
                             answersList.map((ans) => (
                                 <div key={ans.id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex gap-6">
+                                    {/* Vote Buttons */}
                                     <div className="flex flex-col items-center gap-1 shrink-0">
                                         <button
                                             onClick={() => handleVote('answer', ans.id, 1)}
@@ -219,11 +320,28 @@ const QuestionDetailPage = () => {
                                         </button>
                                     </div>
 
+                                    {/* Answer Content */}
                                     <div className="flex-1">
                                         <div className="text-gray-700 leading-7 whitespace-pre-line">{ans.body}</div>
                                         <div className="mt-4 flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
                                             <span className="flex items-center gap-1"><User size={14} /> {ans.username || 'Unknown'}</span>
                                             <span className="flex items-center gap-1"><CalendarDays size={14} /> {new Date(ans.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        {/* Accept Section */}
+                                        <div className="mt-2 flex items-center gap-4">
+                                            {ans.is_accepted && (
+                                                <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs font-semibold">
+                                                    <CheckCircle size={14} /> Accepted
+                                                </span>
+                                            )}
+                                            {!ans.is_accepted && isQuestionAuthor && (
+                                                <button
+                                                    onClick={() => handleAcceptAnswer(ans.id)}
+                                                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                                >
+                                                    Mark as Accepted
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

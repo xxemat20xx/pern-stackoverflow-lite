@@ -21,13 +21,24 @@ export const getAllQuestions = async (): Promise<(Question & { username: string;
     return result.rows;
 };
 
-export const getQuestionById = async (id: number): Promise<(Question & { username: string }) | undefined> => {
+export const getQuestionById = async (id: number): Promise<(Question & { username: string | null }) | undefined> => {
     const result = await pool.query(`
-          SELECT q.*, u.username
-          FROM questions q
-          JOIN users u ON q.author_id = u.id
-          WHERE q.id = $1
-    `, [id])
-
+    SELECT q.*, u.username 
+    FROM questions q
+    LEFT JOIN users u ON q.author_id = u.id  
+    WHERE q.id = $1
+  `, [id]);
     return result.rows[0];
+};
+
+export const updateQuestionById = async (id: number, title: string, body: string): Promise<Question> => {
+    const result = await pool.query(
+        'UPDATE questions SET title = $1, body = $2 WHERE id = $3 RETURNING *',
+        [title, body, id]
+    )
+    return result.rows[0];
+};
+
+export const deleteQuestionById = async (id: number): Promise<void> => {
+    await pool.query('DELETE FROM questions WHERE id = $1', [id]);
 };
