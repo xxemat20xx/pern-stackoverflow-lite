@@ -24,7 +24,7 @@ interface QuestionState {
     deleteQuestionById: (id: number) => Promise<{ success: boolean; error?: string }>;
 }
 
-const useQuestionStore = create<QuestionState>((set, get) => ({
+const useQuestionStore = create<QuestionState>((set) => ({
     questions: [],
     isLoading: false,
     error: null,
