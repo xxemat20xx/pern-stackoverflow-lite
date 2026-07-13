@@ -1,44 +1,90 @@
-import { pool } from '../config/db';
+// import { pool } from '../config/db';
 import { Question } from '../types/index';
+import { prisma } from '../config/prisma';
 
 export const createQuestion = async (title: string, body: string, authorId: number): Promise<Question> => {
-    const result = await pool.query('INSERT INTO questions (title, body, author_id) VALUES ($1, $2, $3)',
-        [title, body, authorId]
-    );
-
-    return result.rows[0];
+    const question = await prisma.question.create({
+        data: {
+            title,
+            body,
+            authorId,
+        },
+        select: {
+            id: true,
+            title: true,
+            body: true,
+            authorId: true,
+            createdAt: true,
+            updatedAt: true,
+        }
+    });
+    return question;
 };
 
 export const getAllQuestions = async (): Promise<(Question & { username: string; answer_count: number })[]> => {
-    const result = await pool.query(`
-        SELECT q.*, u.username,
-        (SELECT COUNT(*) FROM answers WHERE question_id = q.id) AS answer_count
-        FROM questions q
-        JOIN users u ON q.author_id = u.id
-        ORDER BY q.created_at DESC
-        `)
-
-    return result.rows;
+    const questions = await prisma.question.findMany({
+        include: {
+            author: {
+                select: {
+                    username: true
+                }
+            },
+            _count: {
+                select: {
+                    answers: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: 'desc'
+        }
+    });
+    return questions.map((q) => ({
+        ...q,
+        username: q.author?.username || '',
+        answer_count: q._count.answers
+    }))
 };
 
 export const getQuestionById = async (id: number): Promise<(Question & { username: string | null }) | undefined> => {
-    const result = await pool.query(`
-    SELECT q.*, u.username 
-    FROM questions q
-    LEFT JOIN users u ON q.author_id = u.id  
-    WHERE q.id = $1
-  `, [id]);
-    return result.rows[0];
+    const question = await prisma.question.findUnique({
+        where: {
+            id
+        },
+        include: {
+            author: {
+                select: {
+                    username: true
+                }
+            },
+            answers: true
+        }
+    });
+    if (!question) return undefined;
+
+    return {
+        ...question,
+        username: question.author?.username || null
+    };
 };
 
 export const updateQuestionById = async (id: number, title: string, body: string): Promise<Question> => {
-    const result = await pool.query(
-        'UPDATE questions SET title = $1, body = $2 WHERE id = $3 RETURNING *',
-        [title, body, id]
-    )
-    return result.rows[0];
+    const question = await prisma.question.update({
+        where: {
+            id
+        },
+        data: {
+            title,
+            body
+        }
+    });
+    return question;
 };
 
 export const deleteQuestionById = async (id: number): Promise<void> => {
-    await pool.query('DELETE FROM questions WHERE id = $1', [id]);
+    await prisma.question.delete({
+        where: {
+            id
+        }
+    })
 };

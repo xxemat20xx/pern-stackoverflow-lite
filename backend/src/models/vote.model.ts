@@ -1,5 +1,6 @@
 import { pool } from '../config/db';
-import { Vote } from '../types/index';
+import { Vote } from "@prisma/client";
+import { prisma } from '../config/prisma';
 
 export const upsertVote = async (
     userId: number,
@@ -7,18 +8,26 @@ export const upsertVote = async (
     targetId: number,
     voteType: -1 | 1
 ): Promise<Vote> => {
-    // Use ON CONFLICT to update existing vote
-    const result = await pool.query<Vote>(
-        `
-    INSERT INTO votes (user_id, target_type, target_id, vote_type)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (user_id, target_type, target_id)
-    DO UPDATE SET vote_type = EXCLUDED.vote_type, created_at = NOW()
-    RETURNING *
-    `,
-        [userId, targetType, targetId, voteType]
-    );
-    return result.rows[0]!;
+    const vote = await prisma.vote.upsert({
+        where: {
+            userId_targetType_targetId: {
+                userId,
+                targetType,
+                targetId
+            }
+        },
+        update: {
+            voteType
+        },
+        create: {
+            userId,
+            targetType,
+            targetId,
+            voteType
+        }
+    });
+
+    return vote;
 };
 
 export const removeVote = async (
@@ -26,32 +35,34 @@ export const removeVote = async (
     targetType: 'question' | 'answer',
     targetId: number
 ): Promise<boolean> => {
-    const result = await pool.query(
-        'DELETE FROM votes WHERE user_id = $1 AND target_type = $2 AND target_id = $3',
-        [userId, targetType, targetId]
-    );
-    return (result.rowCount ?? 0) > 0;
+    const result = await prisma.vote.deleteMany({
+        where: {
+            userId,
+            targetType,
+            targetId
+        }
+    })
+    return result.count > 0;
 };
 export const getVoteCounts = async (
     targetType: 'question' | 'answer',
     targetId: number
 ): Promise<{ upvotes: number; downvotes: number; total: number }> => {
-    const result = await pool.query(
-        `
-    SELECT
-      COUNT(*) FILTER (WHERE vote_type = 1) AS upvotes,
-      COUNT(*) FILTER (WHERE vote_type = -1) AS downvotes
-    FROM votes
-    WHERE target_type = $1 AND target_id = $2
-    `,
-        [targetType, targetId]
-    );
-    const row = result.rows[0];
-    return {
-        upvotes: Number(row.upvotes),
-        downvotes: Number(row.downvotes),
-        total: Number(row.upvotes) + Number(row.downvotes),
-    };
+    const result = await prisma.vote.groupBy({
+        by: ['voteType'],
+        where: {
+            targetType,
+            targetId
+        },
+        _count: {
+            id: true
+        }
+    })
+
+    const upvotes = result.find(r => r.voteType === 1)?._count.id || 0;
+    const downvotes = result.find(r => r.voteType === -1)?._count.id || 0;
+
+    return { upvotes, downvotes, total: upvotes + downvotes };
 };
 
 export const getUserVote = async (
@@ -59,9 +70,20 @@ export const getUserVote = async (
     targetType: 'question' | 'answer',
     targetId: number
 ): Promise<{ vote_type: -1 | 1 } | null> => {
-    const result = await pool.query<{ vote_type: -1 | 1 }>(
-        'SELECT vote_type FROM votes WHERE user_id = $1 AND target_type = $2 AND target_id = $3',
-        [userId, targetType, targetId]
-    );
-    return result.rows[0] || null;
+
+    const vote = await prisma.vote.findFirst({
+        where: {
+            userId,
+            targetType,
+            targetId
+        }
+    });
+
+    if (!vote) {
+        return null;
+    }
+
+    return {
+        vote_type: vote.voteType as -1 | 1
+    };
 };

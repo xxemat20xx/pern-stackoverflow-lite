@@ -1,5 +1,6 @@
-import { pool } from '../config/db';
-import { Comment } from '../types';
+import { prisma } from "../config/prisma";
+import { Comment } from "../types";
+
 
 export const createComment = async (
     body: string,
@@ -8,18 +9,54 @@ export const createComment = async (
     targetId: number,
 ): Promise<Comment> => {
 
-    const result = await pool.query(
-        'INSERT INTO comments (body, author_id, target_type, target_id) VALUES ($1, $2, $3, $4) RETURNING *',
-        [body, authorId, targetType, targetId]
-    );
-    return result.rows[0]
-}
+    const comment = await prisma.comment.create({
+        data: {
+            body,
+            authorId,
+            targetType,
+            targetId
+        }
+    });
 
-export const getCommentsByTarget = async (targetType: 'question' | 'answer', targetId: number): Promise<(Comment & { username: string })[]> => {
-    const result = await pool.query(
-        `
-    SELECT c.*, u.username FROM comments c JOIN users u ON c.author_id = u.id WHERE c.target_type = $1 AND c.target_id = $2 ORDER BY c.created_at ASC
-    `, [targetType, targetId]
-    );
-    return result.rows[0];
-}
+    return {
+        ...comment,
+        author_id: comment.authorId,
+        target_type: comment.targetType,
+        target_id: comment.targetId,
+        created_at: comment.createdAt
+    } as Comment;
+};
+
+
+export const getCommentsByTarget = async (
+    targetType: 'question' | 'answer',
+    targetId: number
+): Promise<(Comment & { username: string })[]> => {
+
+    const comments = await prisma.comment.findMany({
+        where: {
+            targetType,
+            targetId
+        },
+        include: {
+            author: {
+                select: {
+                    username: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "asc"
+        }
+    });
+
+
+    return comments.map((comment) => ({
+        ...comment,
+        author_id: comment.authorId,
+        target_type: comment.targetType,
+        target_id: comment.targetId,
+        created_at: comment.createdAt,
+        username: comment.author.username
+    })) as (Comment & { username: string })[];
+};
