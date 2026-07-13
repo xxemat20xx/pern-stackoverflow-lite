@@ -1,4 +1,4 @@
-import { pool } from '../config/db';
+
 import { Answer } from '../types/index';
 import { prisma } from '../config/prisma';
 export const createAnswer = async (body: string, questionId: number, authorId: number): Promise<Answer> => {

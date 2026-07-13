@@ -1,32 +1,58 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { pool } from '../config/db';
+import { prisma } from '../config/prisma';
 import type { User } from '../types/index';
 
 declare global {
     namespace Express {
         interface Request {
-            user?: User | undefined;
+            user?: User;
         }
     }
 }
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
-
+export const protect = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
     const token = req.cookies.token;
-    if (!token) return res.status(401).json({ error: 'Not authorized' });
+
+    if (!token) {
+        return res.status(401).json({ error: 'Not authorized' });
+    }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: number };
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET as string
+        ) as { id: number };
 
 
-        const result = await pool.query<User>('SELECT id, username, email FROM users WHERE id = $1', [decoded.id]);
-        if (result.rows.length === 0) return res.status(401).json({ error: 'User not found' });
+        const user = await prisma.user.findUnique({
+            where: {
+                id: decoded.id
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                passwordHashed: true,
+                reputation: true,
+                createdAt: true
+            }
+        });
 
 
-        req.user = result.rows[0];
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+
+
+        req.user = user;
         next();
+
     } catch (error) {
-        res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({ error: 'Invalid token' });
     }
 };

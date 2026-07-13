@@ -1,4 +1,4 @@
-import { pool } from '../config/db';
+
 import { Vote } from "@prisma/client";
 import { prisma } from '../config/prisma';
 

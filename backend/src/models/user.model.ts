@@ -1,4 +1,4 @@
-// import { pool } from '../config/db';
+
 import { User } from '../types/index';
 import { prisma } from '../config/prisma';
 
