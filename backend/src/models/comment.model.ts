@@ -57,6 +57,6 @@ export const getCommentsByTarget = async (
         target_type: comment.targetType,
         target_id: comment.targetId,
         created_at: comment.createdAt,
-        username: comment.author.username
+        username: comment.author?.username ?? "Unknown"
     })) as (Comment & { username: string })[];
 };
