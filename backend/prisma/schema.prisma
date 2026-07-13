@@ -12,8 +12,8 @@ model User {
   username       String     @unique @db.VarChar(50)
   email          String     @unique @db.VarChar(255)
   passwordHashed String     @map("password_hash") @db.VarChar(255)
-  reputation     Int       @default(0)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  reputation     Int?       @default(0)
+  createdAt      DateTime?  @default(now()) @map("created_at") @db.Timestamp(6)
   answers        Answer[]
   comments       Comment[]
   questions      Question[]
@@ -26,11 +26,11 @@ model Question {
   id        Int       @id @default(autoincrement())
   title     String    @db.VarChar(255)
   body      String
-  authorId  Int     @map("author_id")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  authorId  Int?      @map("author_id")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   answers   Answer[]
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  author    User?     @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("questions")
 }
@@ -38,25 +38,25 @@ model Question {
 model Answer {
   id         Int       @id @default(autoincrement())
   body       String
-  questionId Int      @map("question_id")
-  authorId   Int      @map("author_id")
-  isAccepted  Boolean  @default(false) @map("is_accepted")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questionId Int?      @map("question_id")
+  authorId   Int?      @map("author_id")
+  isAccepted Boolean?  @default(false) @map("is_accepted")
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  author     User?     @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("answers")
 }
 
 model Vote {
   id         Int       @id @default(autoincrement())
-  userId     Int      @map("user_id")
-  targetType String   @map("target_type") @db.VarChar(20)
+  userId     Int?      @map("user_id")
+  targetType String?   @map("target_type") @db.VarChar(20)
   targetId   Int       @map("target_id")
-  voteType   Int      @map("vote_type") @db.SmallInt
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  voteType   Int?      @map("vote_type") @db.SmallInt
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, targetType, targetId])
   @@map("votes")
@@ -65,11 +65,11 @@ model Vote {
 model Comment {
   id         Int       @id @default(autoincrement())
   body       String
-  authorId   Int     @map("author_id")
-  targetType String   @map("target_type") @db.VarChar(20)
+  authorId   Int?      @map("author_id")
+  targetType String?   @map("target_type") @db.VarChar(20)
   targetId   Int       @map("target_id")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  author     User    @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  author     User?     @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("comments")
 }

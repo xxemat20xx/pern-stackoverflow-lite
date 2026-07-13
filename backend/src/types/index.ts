@@ -5,8 +5,8 @@ export interface User {
     username: string;
     email: string;
     passwordHashed: string;
-    reputation: number;
-    createdAt: Date;
+    reputation: number | null;
+    createdAt: Date | null;
 }
 
 export interface Question {
@@ -14,8 +14,8 @@ export interface Question {
     title: string;
     body: string;
     authorId: number;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | null;
+    updatedAt: Date | null;
 }
 
 export interface Answer {
@@ -24,8 +24,8 @@ export interface Answer {
     questionId: number;
     authorId: number;
     isAccepted: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | null;
+    updatedAt: Date | null;
 }
 
 export interface Comment {
@@ -34,7 +34,7 @@ export interface Comment {
     authorId: number;
     targetType: 'question' | 'answer';
     targetId: number;
-    createdAt: Date;
+    createdAt: Date | null;
 }
 
 export interface Vote {
@@ -43,5 +43,5 @@ export interface Vote {
     targetType: 'question' | 'answer';
     targetId: number;
     voteType: -1 | 1;
-    createdAt: Date;
+    createdAt: Date | null;
 }
