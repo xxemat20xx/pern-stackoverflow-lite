@@ -21,7 +21,7 @@ interface AnswerState {
 }
 
 // ✅ Use (set, get) to access other actions
-const useAnswerStore = create<AnswerState>((set, get) => ({
+const useAnswerStore = create<AnswerState>((set) => ({
     answers: [],
     isLoading: false,
     error: null,
