@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 import api from '../api/axios';
 
-// Type for an Answer from your backend
 export interface Answer {
     id: number;
     body: string;
     question_id: number;
     author_id: number;
-    username: string;   // joined from users table
+    username: string;
     is_accepted: boolean;
     created_at: string;
 }
@@ -21,7 +20,8 @@ interface AnswerState {
     acceptAnswer: (questionId: number, answerId: number) => Promise<{ success: boolean; error?: string }>;
 }
 
-const useAnswerStore = create<AnswerState>((set) => ({
+// ✅ Use (set, get) to access other actions
+const useAnswerStore = create<AnswerState>((set, get) => ({
     answers: [],
     isLoading: false,
     error: null,
@@ -40,13 +40,10 @@ const useAnswerStore = create<AnswerState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const res = await api.post<Answer>(`/questions/${questionId}/answers`, { body });
-
-            // ✅ Force the username into the answer object
             const newAnswer = {
                 ...res.data,
                 username: username || 'Unknown'
             };
-
             set((state) => ({
                 answers: [newAnswer, ...state.answers],
                 isLoading: false
@@ -62,23 +59,22 @@ const useAnswerStore = create<AnswerState>((set) => ({
     acceptAnswer: async (questionId: number, answerId: number) => {
         set({ isLoading: true, error: null });
         try {
-            await api.put(`/questions/${questionId}/answers/${answerId}/accept`);
-
+            const res = await api.put<Answer>(`/questions/${questionId}/answers/${answerId}/accept`);
             set((state) => ({
                 answers: state.answers.map((ans) =>
-                    ans.id === answerId
-                        ? { ...ans, is_accepted: true }
-                        : { ...ans, is_accepted: false } // ensure only one is accepted
+                    ans.id === answerId ? res.data : { ...ans, is_accepted: false }
                 ),
                 isLoading: false
             }));
             return { success: true };
         } catch (error: any) {
+            // ✅ Extract the exact error from the backend response
             const message = error.response?.data?.error || 'Failed to accept answer';
+            alert(message); // This will now say "This question already has an accepted answer..."
             set({ error: message, isLoading: false });
             return { success: false, error: message };
         }
-    },
+    }
 }));
 
 export default useAnswerStore;

@@ -11,7 +11,7 @@ import {
     X,
     Pencil,
     Trash2,
-    Check
+    Check,
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -20,6 +20,18 @@ import useAnswerStore from '../store/answerStore';
 import useAuthStore from '../store/authStore';
 import useVoteStore from '../store/voteStore';
 import api from '../api/axios';
+
+// ✅ Safe date formatter
+const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'N/A';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Invalid date';
+        return d.toLocaleDateString();
+    } catch {
+        return 'Invalid date';
+    }
+};
 
 const QuestionDetailPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -32,7 +44,13 @@ const QuestionDetailPage = () => {
         }
     }, [questionId, navigate]);
 
-    const { currentQuestion, fetchQuestionById, isLoading: qLoading, updateQuestion, deleteQuestionById } = useQuestionStore();
+    const {
+        currentQuestion,
+        fetchQuestionById,
+        isLoading: qLoading,
+        updateQuestion,
+        deleteQuestionById,
+    } = useQuestionStore();
     const { answers, fetchAnswers, createAnswer, acceptAnswer, isLoading: aLoading } = useAnswerStore();
     const { user } = useAuthStore();
     const { getVoteCounts, castVote, removeVote } = useVoteStore();
@@ -40,8 +58,9 @@ const QuestionDetailPage = () => {
     const [newAnswerBody, setNewAnswerBody] = useState('');
 
     const [questionVotes, setQuestionVotes] = useState({ upvotes: 0, downvotes: 0 });
-    const [answerVotes, setAnswerVotes] = useState<Record<number, { upvotes: number, downvotes: number }>>({});
+    const [answerVotes, setAnswerVotes] = useState<Record<number, { upvotes: number; downvotes: number }>>({});
     const [userVotes, setUserVotes] = useState<Record<string, 1 | -1 | null>>({});
+
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState('');
     const [editBody, setEditBody] = useState('');
@@ -56,22 +75,20 @@ const QuestionDetailPage = () => {
         }
     };
 
-
     const loadVotes = async () => {
         if (!currentQuestion) return;
-
         const qId = Number(currentQuestion.id);
         const qVotes = await getVoteCounts('question', qId);
         setQuestionVotes(qVotes);
         const qUserVote = await getUserVote('question', qId);
-        setUserVotes(prev => ({ ...prev, [`question-${qId}`]: qUserVote }));
+        setUserVotes((prev) => ({ ...prev, [`question-${qId}`]: qUserVote }));
 
         const answersArray = Array.isArray(answers) ? answers : [];
         for (const ans of answersArray) {
             const aVotes = await getVoteCounts('answer', ans.id);
-            setAnswerVotes(prev => ({ ...prev, [ans.id]: aVotes }));
+            setAnswerVotes((prev) => ({ ...prev, [ans.id]: aVotes }));
             const aUserVote = await getUserVote('answer', ans.id);
-            setUserVotes(prev => ({ ...prev, [`answer-${ans.id}`]: aUserVote }));
+            setUserVotes((prev) => ({ ...prev, [`answer-${ans.id}`]: aUserVote }));
         }
     };
 
@@ -104,24 +121,21 @@ const QuestionDetailPage = () => {
             alert('Please login to vote.');
             return;
         }
-
         const key = `${targetType}-${targetId}`;
         const currentUserVote = userVotes[key];
-
         try {
             if (currentUserVote === voteType) {
                 await removeVote(targetType, targetId);
-                setUserVotes(prev => ({ ...prev, [key]: null }));
+                setUserVotes((prev) => ({ ...prev, [key]: null }));
             } else {
                 await castVote(targetType, targetId, voteType as 1 | -1);
-                setUserVotes(prev => ({ ...prev, [key]: voteType }));
+                setUserVotes((prev) => ({ ...prev, [key]: voteType }));
             }
-
             const newCounts = await getVoteCounts(targetType, targetId);
             if (targetType === 'question') {
                 setQuestionVotes(newCounts);
             } else {
-                setAnswerVotes(prev => ({ ...prev, [targetId]: newCounts }));
+                setAnswerVotes((prev) => ({ ...prev, [targetId]: newCounts }));
             }
         } catch (error: any) {
             alert(error.response?.data?.error || 'Failed to vote.');
@@ -136,6 +150,32 @@ const QuestionDetailPage = () => {
         }
     };
 
+    const handleStartEdit = () => {
+        setEditTitle(currentQuestion!.title);
+        setEditBody(currentQuestion!.body);
+        setIsEditing(true);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim() || !editBody.trim()) return;
+        const result = await updateQuestion(Number(currentQuestion!.id), editTitle, editBody);
+        if (result.success) {
+            setIsEditing(false);
+        } else {
+            alert(result.error || 'Failed to update question');
+        }
+    };
+
+    const handleDeleteCurrent = async () => {
+        if (confirm('Are you sure you want to delete this question?')) {
+            await deleteQuestionById(Number(currentQuestion!.id));
+            navigate('/questions');
+        }
+    };
 
     if (qLoading) {
         return (
@@ -158,39 +198,14 @@ const QuestionDetailPage = () => {
     }
 
     const answersList = Array.isArray(answers) ? answers : [];
-    // ✅ Safe to check author_id now because we already guarded currentQuestion
     const isQuestionAuthor = user?.id === currentQuestion.author_id;
-
-    const handleStartEdit = () => {
-        setEditTitle(currentQuestion.title);
-        setEditBody(currentQuestion.body);
-        setIsEditing(true);
-    };
-    const handleCancelEdit = () => {
-        setIsEditing(false);
-    };
-    const handleSaveEdit = async () => {
-        if (!editTitle.trim() || !editBody.trim()) return;
-        const result = await updateQuestion(Number(currentQuestion.id), editTitle, editBody);
-        if (result.success) {
-            setIsEditing(false);
-        } else {
-            alert(result.error || 'Failed to update question');
-        }
-    };
-    const handleDeleteCurrent = async () => {
-        if (confirm('Are you sure you want to delete this question?')) {
-            await deleteQuestionById(Number(currentQuestion.id));
-            navigate('/questions');
-        }
-    };
 
     return (
         <div className="min-h-screen bg-slate-50">
             <Navbar />
 
             <div className="max-w-4xl mx-auto px-6 py-10">
-
+                {/* Back button */}
                 <button
                     onClick={() => navigate('/questions')}
                     className="flex items-center gap-2 text-gray-600 hover:text-blue-600 mb-6 transition"
@@ -202,75 +217,77 @@ const QuestionDetailPage = () => {
                 <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8 shadow-sm">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h1 className="text-3xl font-bold text-gray-900">{currentQuestion.title}</h1>
                             {isEditing ? (
-                                // Edit Mode UI
-                                <>
+                                // ⚡ EDIT MODE
+                                <div className="space-y-4">
                                     <input
-                                        className="mt-4 w-full border-2 border-gray-300 rounded-lg px-4 py-2"
+                                        type="text"
                                         value={editTitle}
                                         onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full text-3xl font-bold border border-blue-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                     />
                                     <textarea
-                                        className="mt-2 w-full border-2 border-gray-300 rounded-lg px-4 py-2"
-                                        rows={5}
                                         value={editBody}
                                         onChange={(e) => setEditBody(e.target.value)}
+                                        rows={8}
+                                        className="w-full text-gray-700 border border-blue-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-sans"
                                     />
-                                    <div className="flex gap-2 mt-4">
+                                    <div className="flex gap-3">
                                         <button
                                             onClick={handleSaveEdit}
-                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg"
+                                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                                         >
-                                            <Check />
+                                            <Check size={16} /> Save
                                         </button>
                                         <button
                                             onClick={handleCancelEdit}
-                                            className="px-6 py-2 border-2 border-gray-300 rounded-lg"
+                                            className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
                                         >
-                                            <X />
+                                            <X size={16} /> Cancel
                                         </button>
                                     </div>
-                                </>
+                                </div>
                             ) : (
-                                // Display Mode UI
+                                // 👁️ VIEW MODE
                                 <>
-                                    <p className="mt-4">{currentQuestion.body}</p>
+                                    <h1 className="text-3xl font-bold text-gray-900">{currentQuestion.title}</h1>
+                                    <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
+                                        <span className="flex items-center gap-1">
+                                            <User size={16} /> {currentQuestion.username}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <CalendarDays size={16} /> {formatDate(currentQuestion.created_at)}
+                                        </span>
+                                    </div>
+                                    <div className="mt-6 text-gray-700 leading-7 whitespace-pre-line">
+                                        {currentQuestion.body}
+                                    </div>
                                     {isQuestionAuthor && (
-                                        <div className="flex gap-2 mt-4">
+                                        <div className="flex gap-3 mt-4">
                                             <button
                                                 onClick={handleStartEdit}
-                                                className="px-4 py-1 bg-gray-200 rounded-lg"
+                                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition"
                                             >
-                                                <Pencil />
+                                                <Pencil size={16} /> Edit
                                             </button>
                                             <button
                                                 onClick={handleDeleteCurrent}
-                                                className="px-4 py-1 bg-red-200 text-red-600 rounded-lg"
+                                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition"
                                             >
-                                                <Trash2 />
+                                                <Trash2 size={16} /> Delete
                                             </button>
                                         </div>
                                     )}
                                 </>
                             )}
-                            <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-                                <span className="flex items-center gap-1">
-                                    <User size={16} /> {currentQuestion.username}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <CalendarDays size={16} /> {new Date(currentQuestion.created_at).toLocaleDateString()}
-                                </span>
-                            </div>
-                            <div className="mt-6 text-gray-700 leading-7 whitespace-pre-line">
-                                {currentQuestion.body}
-                            </div>
                         </div>
 
+                        {/* Vote buttons (always visible) */}
                         <div className="flex flex-col items-center gap-1 ml-6 p-3 bg-gray-50 rounded-xl border border-gray-200">
                             <button
                                 onClick={() => handleVote('question', Number(currentQuestion.id), 1)}
-                                className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`question-${currentQuestion.id}`] === 1 ? 'text-green-600' : 'text-gray-400'}`}
+                                className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`question-${currentQuestion.id}`] === 1 ? 'text-green-600' : 'text-gray-400'
+                                    }`}
                             >
                                 <ArrowUp size={24} />
                             </button>
@@ -279,7 +296,8 @@ const QuestionDetailPage = () => {
                             </span>
                             <button
                                 onClick={() => handleVote('question', Number(currentQuestion.id), -1)}
-                                className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`question-${currentQuestion.id}`] === -1 ? 'text-red-600' : 'text-gray-400'}`}
+                                className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`question-${currentQuestion.id}`] === -1 ? 'text-red-600' : 'text-gray-400'
+                                    }`}
                             >
                                 <ArrowDown size={24} />
                             </button>
@@ -305,7 +323,8 @@ const QuestionDetailPage = () => {
                                     <div className="flex flex-col items-center gap-1 shrink-0">
                                         <button
                                             onClick={() => handleVote('answer', ans.id, 1)}
-                                            className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`answer-${ans.id}`] === 1 ? 'text-green-600' : 'text-gray-400'}`}
+                                            className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`answer-${ans.id}`] === 1 ? 'text-green-600' : 'text-gray-400'
+                                                }`}
                                         >
                                             <ArrowUp size={20} />
                                         </button>
@@ -314,7 +333,8 @@ const QuestionDetailPage = () => {
                                         </span>
                                         <button
                                             onClick={() => handleVote('answer', ans.id, -1)}
-                                            className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`answer-${ans.id}`] === -1 ? 'text-red-600' : 'text-gray-400'}`}
+                                            className={`p-1 rounded transition hover:bg-gray-200 ${userVotes[`answer-${ans.id}`] === -1 ? 'text-red-600' : 'text-gray-400'
+                                                }`}
                                         >
                                             <ArrowDown size={20} />
                                         </button>
@@ -325,7 +345,7 @@ const QuestionDetailPage = () => {
                                         <div className="text-gray-700 leading-7 whitespace-pre-line">{ans.body}</div>
                                         <div className="mt-4 flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
                                             <span className="flex items-center gap-1"><User size={14} /> {ans.username || 'Unknown'}</span>
-                                            <span className="flex items-center gap-1"><CalendarDays size={14} /> {new Date(ans.created_at).toLocaleDateString()}</span>
+                                            <span className="flex items-center gap-1"><CalendarDays size={14} /> {formatDate(ans.created_at)}</span>
                                         </div>
                                         {/* Accept Section */}
                                         <div className="mt-2 flex items-center gap-4">
@@ -371,7 +391,6 @@ const QuestionDetailPage = () => {
                         </button>
                     </form>
                 </div>
-
             </div>
         </div>
     );

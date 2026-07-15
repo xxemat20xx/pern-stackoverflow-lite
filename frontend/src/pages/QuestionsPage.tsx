@@ -7,12 +7,22 @@ import {
     CalendarDays,
     Plus,
     Trash2,
-    Loader2, // ✅ add this icon
+    Loader2,
 } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import useQuestionStore from "../store/questionStore";
 import useAuthStore from "../store/authStore";
+
+const formatDate = (dateStr: string) => {
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Invalid date';
+        return d.toLocaleDateString();
+    } catch {
+        return 'Invalid date';
+    }
+};
 
 const QuestionsPage = () => {
     const { questions, isLoading, fetchQuestions, deleteQuestionById, deletingIds } = useQuestionStore();
@@ -21,6 +31,12 @@ const QuestionsPage = () => {
     useEffect(() => {
         fetchQuestions();
     }, []);
+
+    // 🔍 DEBUG: log user and questions when they change
+    useEffect(() => {
+        console.log('🔍 Current user:', user);
+        console.log('🔍 Questions:', questions);
+    }, [user, questions]);
 
     if (isLoading) {
         return (
@@ -91,6 +107,11 @@ const QuestionsPage = () => {
                 <div className="divide-y divide-zinc-200 border border-zinc-200 rounded-2xl overflow-hidden bg-white">
                     {questions.map((q) => {
                         const isDeleting = deletingIds.has(Number(q.id));
+                        // 🔍 DEBUG: log the comparison for each question
+                        const authorIdNumber = Number(q.author_id);
+                        const isAuthor = user?.id === authorIdNumber;
+                        console.log(`🔍 Question ${q.id}: author_id=${q.author_id} (${authorIdNumber}), user?.id=${user?.id}, isAuthor=${isAuthor}`);
+
                         return (
                             <div key={q.id} className="group relative block">
                                 <Link
@@ -121,14 +142,14 @@ const QuestionsPage = () => {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-zinc-500">
                                                 <CalendarDays size={15} />
-                                                {new Date(q.created_at).toLocaleDateString()}
+                                                {formatDate(q.created_at)}
                                             </div>
                                         </div>
                                     </div>
                                 </Link>
 
-                                {/* ✅ Delete button with loader */}
-                                {user?.id === q.author_id && (
+                                {/* ✅ Delete button – now shows only if isAuthor is true */}
+                                {isAuthor && (
                                     <button
                                         disabled={isDeleting}
                                         onClick={(e) => {
@@ -138,8 +159,8 @@ const QuestionsPage = () => {
                                             }
                                         }}
                                         className={`absolute top-4 right-4 p-2 bg-white border border-gray-200 rounded-full shadow-sm transition ${isDeleting
-                                            ? 'text-orange-500 cursor-not-allowed opacity-100'
-                                            : 'text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100'
+                                                ? 'text-orange-500 cursor-not-allowed opacity-100'
+                                                : 'text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100'
                                             }`}
                                         title="Delete question"
                                     >
